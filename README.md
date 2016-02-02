@@ -1,9 +1,5 @@
 # upstream_sync
-A little script to help mirror upstream repositories.
-
-The script support http:// and https:// repositories using reposync and
-rsync:// repostories using rsync. It also supports rhn:// and sles repos,
-however don't use those.
+Sync http and https repositories using reposync, rsync repos, and sles using youget.
 
 ## Disclaimer
 I've had many folks request that I share this script. To comply I am posting as
@@ -13,7 +9,64 @@ is. It's certainly not perfect and there is a lot of room for improvement.
 ## Configuration
   - in `upstream_sync.py` set
     - `mirror_dir` path mirrored content should be stored in
-    - `repo_conf`: path to the upstream.repo configuration file (see example)
+    - `confd_dir`: path to configuration directory (see example)
+
+### Examples
+/etc/upstream_sync/auth.conf
+```
+[rhel-server]
+sslcacert = /mirror/certs/redhat-uep.pem
+sslcert = /mirror/certs/rhel-server.pem
+sslkey = /mirror/certs/rhel-server.pem
+```
+
+/etc/upstream_sync/redhat.repo
+```
+[rhel-7-x86_64-os]
+auth = rhel-server
+url = https://cdn.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os
+path = rhel/7/x86_64/os
+createrepo = true
+
+[rhel-6-x86_64-os]
+auth = rhel-server
+url = https://cdn.redhat.com/content/dist/rhel/server/6/6Server/x86_64/os
+path = rhel/6/x86_64/os
+createrepo = true
+```
+
+/etc/upstream_sync/epel.repo
+```
+## epel
+[epel-5-x86_64]
+url = rsync://rsync.gtlib.gatech.edu/fedora-epel/5/x86_64/
+path = el/5/x86_64/epel
+exclude = /debug/
+
+[epel-6-x86_64]
+url = rsync://rsync.gtlib.gatech.edu/fedora-epel/6/x86_64/
+path = el/6/x86_64/epel
+exclude = /debug/
+
+[epel-7-x86_64]
+url = rsync://rsync.gtlib.gatech.edu/fedora-epel/7/x86_64/
+path = el/7/x86_64/epel
+exclude = /debug/
+```
+
+/etc/upstream_sync/centos.repo
+```
+## centos x86_64
+[centos-6.6-x86_64-updates]
+url = rsync://rsync.gtlib.gatech.edu/centos/6.6/updates/x86_64/Packages/
+path = centos/6.6/x86_64/updates
+createrepo = true
+
+[centos-5.11-x86_64-updates]
+url = rsync://rsync.gtlib.gatech.edu/centos/5.11/updates/x86_64/RPMS/
+path = centos/5.11/x86_64/updates
+createrepo = true
+```
 
 ## Usage
 
@@ -36,7 +89,7 @@ RedHat repos use HTTPS with client certificates for authentication. There is no 
 Remember, you still must comply with RedHat Licensing!
 
 ### Getting the Certificates
-The CA can be found on any RHEL system: /etc/rhsm/ca/redhat-uep.pem 
+The CA can be found on any RHEL system: /etc/rhsm/ca/redhat-uep.pem
 
 To obtain the client certificate and key, you need manually register your
 system through the customer portal. You will then assign an entitlement to the
@@ -46,4 +99,4 @@ ssl certificate/key that you want to use with this script.
 You can test the ssl certificate with this curl command
 ```$ curl --cacert /etc/rhsm/ca/redhat-uep.pem -E ./rhel.pem --key ./rhel.pem https://cdn.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os```
 
-Of course, adjust the URL as necessary. 
+Of course, adjust the URL as necessary.
