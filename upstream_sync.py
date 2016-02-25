@@ -165,7 +165,7 @@ def sync_cmd_reposync(repo):
 
 
 def sync_cmd_rhnget(repo):
-    systemid = os.path.join(os.path.split(path)[0],'systemid')
+    systemid = os.path.join(os.path.split(repo['path'])[0], 'systemid')
     if not os.path.isfile(systemid):
         logging.warn("rhn: can not find systemid (%s)" % systemid)
         return
