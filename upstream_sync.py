@@ -12,24 +12,25 @@ import datetime
 import glob
 import logging
 
-## Declare variables
+# Declare variables
 mirror_dir = '/mirror/upstream'
 confd_dir = '/etc/upstream_sync'
 
 # directory that contains authentication credentials for sles
 sles_auth_cred_dir = '/etc/nccs/sles_mirror'
 
-## directory to store generated repo confs
-user=getpass.getuser()
+# directory to store generated repo confs
+user = getpass.getuser()
 tmp_dir = '/var/tmp/upstream_sync-{0}'.format(user)
 
-def build_yum_config(name,url,sslcacert,sslcert,sslkey):
+
+def build_yum_config(name, url, sslcacert, sslcert, sslkey):
     # Check tmp path exist
     if not os.path.isdir(tmp_dir):
         os.mkdir(tmp_dir)
-    repo_conf = os.path.join(tmp_dir,'{0}.repo'.format(name))
+    repo_conf = os.path.join(tmp_dir, '{0}.repo'.format(name))
 
-    f = open(repo_conf,'w')
+    f = open(repo_conf, 'w')
     f.write('[{0}]\n'.format(name))
     f.write('name = {0}\n'.format(name))
     f.write('baseurl = {0}\n'.format(url))
@@ -49,17 +50,19 @@ def build_yum_config(name,url,sslcacert,sslcert,sslkey):
 
     return repo_conf
 
+
 def check_sslcert_expiration(sslcert):
-    "checks to see if the ssl cert is going to expire soon"
+    """checks to see if the ssl cert is going to expire soon"""
     cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, file(sslcert).read())
-    cert_expires = datetime.datetime.strptime(cert.get_notAfter(),"%Y%m%d%H%M%SZ")
+    cert_expires = datetime.datetime.strptime(cert.get_notAfter(), "%Y%m%d%H%M%SZ")
 
     if datetime.datetime.now() > cert_expires:
-        logging.warn('SSL Certificate (%s) expired on %s' % (sslcert,cert_expires))
+        logging.warn('SSL Certificate (%s) expired on %s' % (sslcert, cert_expires))
     elif datetime.datetime.now()+datetime.timedelta(days=14) > cert_expires:
-        logging.warn('SSL Certificate (%s) is going to expire on %s' % (sslcert,cert_expires))
+        logging.warn('SSL Certificate (%s) is going to expire on %s' % (sslcert, cert_expires))
 
     return
+
 
 def get_repos(rfilter=None):
     """
@@ -67,10 +70,16 @@ def get_repos(rfilter=None):
 
     if rfilter is set, only repos that match rfilter will be returned
     """
-    defaults = {'createrepo':'False','copylinks':'False','exclude':'','sslcacert':'','sslcert':'','sslkey':''}
+    defaults = {
+        'createrepo': 'False',
+        'copylinks': 'False',
+        'exclude': '',
+        'sslcacert': '',
+        'sslcert': '',
+        'sslkey': ''
+    }
     config = ConfigParser.ConfigParser(defaults)
     config.read(glob.glob(os.path.join(confd_dir, '*.repo')))
-
 
     # sort all the repos by alpha order, ConfigParser return sections
     # in the order that they appear in the config file
@@ -80,11 +89,12 @@ def get_repos(rfilter=None):
             continue
         repo = dict(config.items(title))
         repo['name'] = title
-        repo['path'] = os.path.join(mirror_dir, repo['path']) # absolute path of repository
+        repo['path'] = os.path.join(mirror_dir, repo['path'])  # absolute path of repository
         repos.append(repo)
 
     repos = sorted(repos, key=lambda k: k['name'])
     return repos
+
 
 def get_auths():
     config = ConfigParser.ConfigParser()
@@ -102,6 +112,7 @@ def get_auths():
 def list_repos(repos):
     for repo in repos:
         print repo['name']
+
 
 def sync_cmd_reposync(repo):
     sslcacert = None
@@ -152,14 +163,16 @@ def sync_cmd_reposync(repo):
     sync_cmd = ['reposync'] + reposync_opts
     return sync_cmd
 
+
 def sync_cmd_rhnget(repo):
-    systemid = os.path.join(os.path.split(path)[0],'systemid')
+    systemid = os.path.join(os.path.split(repo['path'])[0], 'systemid')
     if not os.path.isfile(systemid):
-        logging.warn("rhn: can not find systemid (%s)" % (systemid))
+        logging.warn("rhn: can not find systemid (%s)" % systemid)
         return
 
     sync_cmd = ['rhnget', '-q', '-s', systemid, repo['url'], repo['path']]
     return sync_cmd
+
 
 def sync_cmd_rsync(repo):
     rsync_opts = []
@@ -174,7 +187,7 @@ def sync_cmd_rsync(repo):
 
     exclude_list = repo['exclude'].split(',')
     for item in exclude_list:
-        #split() will return an empty list element
+        # split() will return an empty list element
         if item:
             rsync_opts.append('--exclude')
             rsync_opts.append(item)
@@ -184,6 +197,7 @@ def sync_cmd_rsync(repo):
 
     sync_cmd = ['rsync'] + rsync_opts + [repo['url'], repo['path']]
     return sync_cmd
+
 
 def sync_cmd_you(repo):
     # checking for sles credentials
@@ -201,6 +215,7 @@ def sync_cmd_you(repo):
     sync_cmd = ['/opt/bin/youget', '-q', '--source', '-d', sles_auth_cred_dir, '--delete', url, repo['path']]
 
     return sync_cmd
+
 
 def main():
     """main subroutine"""
@@ -246,26 +261,24 @@ def main():
             print("If you are sure you want to run as root, pass --root")
             sys.exit(2)
 
-
     for repo in repos:
         # set variables based on values in config
         url = repo['url']
         name = repo['name']
-        path = os.path.join(mirror_dir, repo['path']) # absolute path of repository
+        path = os.path.join(mirror_dir, repo['path'])  # absolute path of repository
 
         # create repo directory
         if not show_command:
             if not os.path.isdir(path):
-                os.makedirs(path,0775)
+                os.makedirs(path, 0775)
 
         createrepo = False
         if repo['createrepo'].lower() == "true":
             createrepo = True
 
-
         # Generate the sync and createrepo commands to be used based on repository type
         createrepo_exec = ['createrepo']
-        createrepo_opts = ['--pretty','--database','--update','--cachedir',os.path.join(path,'.cache'),path]
+        createrepo_opts = ['--pretty', '--database', '--update', '--cachedir', os.path.join(path, '.cache'), path]
         if not options.verbose:
             createrepo_opts.append('-q')
 
@@ -273,12 +286,12 @@ def main():
             sync_cmd = sync_cmd_reposync(repo)
         elif re.match('^rhns:///', url):
             sync_cmd = sync_cmd_rhnget(repo)
-        elif re.match('^you://',url):
+        elif re.match('^you://', url):
             sync_cmd = sync_cmd_you(repo)
         elif re.match('^rsync://', url):
             sync_cmd = sync_cmd_rsync(repo)
         else:
-            logging.warn('url type unknown - %s' % (url))
+            logging.warn('url type unknown - %s' % url)
             continue
 
         if not sync_cmd:
@@ -293,7 +306,7 @@ def main():
             continue
 
         # preform sync - rhnget/rsync
-        logging.info('syncing %s' % (name))
+        logging.info('syncing %s' % name)
         if options.verbose:
             stdout_pipe = sys.stdout
             stderr_pipe = sys.stderr
@@ -301,7 +314,7 @@ def main():
             stdout_pipe = subprocess.PIPE
             stderr_pipe = subprocess.STDOUT
 
-        p1 = subprocess.Popen(sync_cmd,stdout=stdout_pipe,stderr=stderr_pipe,stdin=subprocess.PIPE)
+        p1 = subprocess.Popen(sync_cmd, stdout=stdout_pipe, stderr=stderr_pipe, stdin=subprocess.PIPE)
         p1_rc = p1.wait()
         stdout, _ = p1.communicate()
 
@@ -310,20 +323,20 @@ def main():
             if not options.verbose:
                 logging.warn(stdout)
             logging.warn('sync failed: %s' % name)
-            continue # no need to run createrepo if sync failed
+            continue  # no need to run createrepo if sync failed
 
         # run createrepo to generate package metadata
         if createrepo:
             logging.info('generating package metadata: {0}'.format(name))
 
             # if comps.xml exists, use it to generate group data
-            comps_file=os.path.join(path,'comps.xml')
+            comps_file = os.path.join(path, 'comps.xml')
             if os.path.isfile(comps_file):
                 createrepo_opts = ['-g', comps_file] + createrepo_opts
 
             createrepo_cmd = createrepo_exec + createrepo_opts
 
-            p2 = subprocess.Popen(createrepo_cmd,stdout=stdout_pipe,stderr=stderr_pipe,stdin=subprocess.PIPE)
+            p2 = subprocess.Popen(createrepo_cmd, stdout=stdout_pipe, stderr=stderr_pipe, stdin=subprocess.PIPE)
             p2_rc = p2.wait()
             stdout, _ = p2.communicate()
 
