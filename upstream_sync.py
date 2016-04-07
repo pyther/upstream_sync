@@ -87,39 +87,8 @@ def check_sslcert_expiration(sslcert):
     return
 
 
-def get_repos(rfilter=None):
-    """
-    parse configuration files and return repos.
-
-    if rfilter is set, only repos that match rfilter will be returned
-    """
-    defaults = {
-        'createrepo': 'False',
-        'copylinks': 'False',
-        'exclude': '',
-        'sslcacert': '',
-        'sslcert': '',
-        'sslkey': ''
-    }
-    config = ConfigParser.ConfigParser(defaults)
-    config.read(glob.glob(os.path.join(confd_dir, '*.repo')))
-
-    # sort all the repos by alpha order, ConfigParser return sections
-    # in the order that they appear in the config file
-    repos = []
-    for title in config.sections():
-        if rfilter and (title not in rfilter):
-            continue
-        repo = dict(config.items(title))
-        repo['name'] = title
-        repo['path'] = os.path.join(mirror_dir, repo['path'])  # absolute path of repository
-        repos.append(repo)
-
-    repos = sorted(repos, key=lambda k: k['name'])
-    return repos
-
-
-def get_auths():
+def parse_config_auth():
+    """ returns dictionary of authentication keys """
     config = ConfigParser.ConfigParser()
     config.read(os.path.join(confd_dir, 'auth.conf'))
 
@@ -130,6 +99,39 @@ def get_auths():
         auths[title] = items
 
     return auths
+
+
+def config_repos(rfilter=None):
+    """
+    parse configuration files and return repos.
+
+    if rfilter is set, only repos that match rfilter will be returned
+    """
+    defaults = {
+        'createrepo': 'False',
+        'copylinks': 'False',
+        'exclude': '',
+    }
+    config = ConfigParser.ConfigParser(defaults)
+    config.read(glob.glob(os.path.join(confd_dir, '*.repo')))
+
+    auths = parse_config_auth()
+
+    # sort all the repos by alpha order, ConfigParser return sections
+    # in the order that they appear in the config file
+    repos = []
+    for title in config.sections():
+        if rfilter and (title not in rfilter):
+            continue
+        repo = dict(config.items(title))
+        repo['name'] = title
+        repo['path'] = os.path.join(mirror_dir, repo['path'])  # absolute path of repository
+        if repo.has_key('auth'):
+            repo['auth'] = auths[repo['auth']]
+        repos.append(repo)
+
+    repos = sorted(repos, key=lambda k: k['name'])
+    return repos
 
 
 def list_repos(repos):
@@ -150,7 +152,7 @@ def sync_cmd_reposync(repo):
     path = repo['path']
 
     if repo.has_key('auth'):
-        auth = get_auths()[repo['auth']]
+        auth = repo['auth']
         sslcacert = auth['sslcacert']
         sslcert = auth['sslcert']
         sslkey = auth['sslkey']
@@ -286,9 +288,9 @@ def main():
 
     # get repos from config
     if options.rfilter:
-        repos = get_repos(rfilter=options.rfilter.split(','))
+        repos = config_repos(rfilter=options.rfilter.split(','))
     else:
-        repos = get_repos()
+        repos = config_repos()
 
     # list repos
     if options.list:
