@@ -12,6 +12,7 @@ is. It's certainly not perfect and there is a lot of room for improvement.
     - `confd_dir`: path to configuration directory (see example)
 
 ### Examples
+#### HTTPS with Authentication
 /etc/upstream_sync/auth.conf
 ```
 [rhel-server]
@@ -35,6 +36,7 @@ path = rhel/6/x86_64/os
 createrepo = true
 ```
 
+#### RSYNC with Exclude
 /etc/upstream_sync/epel.repo
 ```
 ## epel
@@ -54,6 +56,8 @@ path = el/7/x86_64/epel
 exclude = /debug/
 ```
 
+
+#### RSYNC
 /etc/upstream_sync/centos.repo
 ```
 ## centos x86_64
@@ -68,11 +72,11 @@ path = centos/5.11/x86_64/updates
 createrepo = true
 ```
 
+#### HTTP with sync_opts
 Override the default reposync options with sync_opts
 
 /etc/upstream_sync/mariadb.repo
 ```
-## mariadb 10.1.12 rhel7
 [mariadb-10.1.12-rhel7]
 url = http://yum.mariadb.org/10.1.12/rhel7-amd64/
 path = mariadb/rhel7/x86_64
@@ -84,6 +88,22 @@ url = http://yum.mariadb.org/10.1.11/rhel7-amd64/
 path = mariadb/rhel7/x86_64
 sync_opts = --norepopath --tempcache
 createrepo = true
+```
+
+#### RSYNC with Authentication
+/etc/upstream_sync/auth.conf
+```
+[hp]
+user = foo
+password = bar
+```
+
+/etc/upstream_sync/hp.repo
+```
+[hp_fwpp-7-x86_64]
+auth = hp
+url = rsync://rsync.linux.hpe.com/FIRMWARE/repo/fwpp/rhel/7/x86_64/current/
+path = el/7/x86_64/hp_fwpp
 ```
 
 ## Usage

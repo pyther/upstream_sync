@@ -215,6 +215,23 @@ def sync_cmd_rhnget(repo):
 
 
 def sync_cmd_rsync(repo):
+    try:
+        username = repo['auth']['user']
+    except KeyError:
+        url = repo['url']
+    else:
+        s = repo['url'].split('//', 1)
+        s.insert(1, '//{0}@'.format(username))
+        url = ''.join(s)
+
+    try:
+        password = repo['auth']['password']
+    except KeyError:
+        password = ''
+
+    logging.debug('set RSYNC_PASSWORD environment variable')
+    os.environ["RSYNC_PASSWORD"] = password
+
     rsync_opts = []
     # build options
     if repo.has_key('sync_opts'):
@@ -241,7 +258,7 @@ def sync_cmd_rsync(repo):
     if verbose:
         rsync_opts.append('--itemize-changes')
 
-    sync_cmd = ['rsync'] + rsync_opts + [repo['url'], repo['path']]
+    sync_cmd = ['rsync'] + rsync_opts + [url, repo['path']]
     return sync_cmd
 
 
