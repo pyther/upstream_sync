@@ -76,8 +76,11 @@ def build_yum_config(name, url, sslcacert, sslcert, sslkey, exclude):
 
 def check_sslcert_expiration(sslcert):
     """checks to see if the ssl cert is going to expire soon"""
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, file(sslcert).read())
-    cert_expires = datetime.datetime.strptime(cert.get_notAfter(), "%Y%m%d%H%M%SZ")
+    try:
+        cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, file(sslcert).read())
+        cert_expires = datetime.datetime.strptime(cert.get_notAfter(), "%Y%m%d%H%M%SZ")
+    except IOError:
+        return
 
     if datetime.datetime.now() > cert_expires:
         logging.warn('SSL Certificate (%s) expired on %s' % (sslcert, cert_expires))
