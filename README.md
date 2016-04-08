@@ -68,6 +68,24 @@ path = centos/5.11/x86_64/updates
 createrepo = true
 ```
 
+Override the default reposync options with sync_opts
+
+/etc/upstream_sync/mariadb.repo
+```
+## mariadb 10.1.12 rhel7
+[mariadb-10.1.12-rhel7]
+url = http://yum.mariadb.org/10.1.12/rhel7-amd64/
+path = mariadb/rhel7/x86_64
+sync_opts = --norepopath --tempcache
+createrepo = true
+
+[mariadb-10.1.11-rhel7]
+url = http://yum.mariadb.org/10.1.11/rhel7-amd64/
+path = mariadb/rhel7/x86_64
+sync_opts = --norepopath --tempcache
+createrepo = true
+```
+
 ## Usage
 
 List all Repos that are configured
@@ -81,6 +99,9 @@ Sync all repos
 
 Be verbose while syncing
   `./upstream_sync.py -v`
+
+Show sync and createrepo commands
+  `./upstream_sync.py -c`
 
 ## Mirroring RedHat Repos
 

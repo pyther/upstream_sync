@@ -31,6 +31,8 @@ def build_yum_config(name, url, sslcacert, sslcert, sslkey):
     repo_conf = os.path.join(tmp_dir, '{0}.repo'.format(name))
 
     f = open(repo_conf, 'w')
+    f.write('[main]\n')
+    f.write('reposdir=/dev/null\n')
     f.write('[{0}]\n'.format(name))
     f.write('name = {0}\n'.format(name))
     f.write('baseurl = {0}\n'.format(url))
@@ -150,11 +152,16 @@ def sync_cmd_reposync(repo):
         logging.warn('unable to detect architecture for %s' % name)
 
     # build options
-    reposync_opts.append('--tempcache')
-    reposync_opts.append('--norepopath')
-    reposync_opts.append('--downloadcomps')
-    reposync_opts.append('--newest-only')
-    reposync_opts.append('--delete')
+    if repo.has_key('sync_opts'):
+        opt_list = repo['sync_opts'].split()
+        for opt in opt_list:
+            reposync_opts.append(opt)
+    else:
+        reposync_opts.append('--tempcache')
+        reposync_opts.append('--norepopath')
+        reposync_opts.append('--downloadcomps')
+        reposync_opts.append('--newest-only')
+        reposync_opts.append('--delete')
 
     # be quiet if verbose is not set
     if not verbose:
@@ -176,11 +183,17 @@ def sync_cmd_rhnget(repo):
 
 def sync_cmd_rsync(repo):
     rsync_opts = []
-    rsync_opts.append('--no-motd')
-    rsync_opts.append('--recursive')
-    rsync_opts.append('--delete')
-    rsync_opts.append('--times')
-    rsync_opts.append('--contimeout=30')
+    # build options
+    if repo.has_key('sync_opts'):
+        opt_list = repo['sync_opts'].split()
+        for opt in opt_list:
+            rsync_opts.append(opt)
+    else:
+        rsync_opts.append('--no-motd')
+        rsync_opts.append('--recursive')
+        rsync_opts.append('--delete')
+        rsync_opts.append('--times')
+        rsync_opts.append('--contimeout=30')
 
     if repo['copylinks'].lower() == 'true':
         rsync_opts.append('--copy-links')
