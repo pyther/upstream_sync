@@ -24,10 +24,28 @@ user = getpass.getuser()
 tmp_dir = '/var/tmp/upstream_sync-{0}'.format(user)
 
 
-def build_yum_config(name, url, sslcacert, sslcert, sslkey):
+def make_dir(dir_path, mode=None):
+    """ checks if a directory exists and create it if necessary
+    :param mode: mode for makedirs
+    :param dir_path: dir path for check
+
+    :return: None
+    """
+    if not os.path.isdir(dir_path):
+        # set current umask if not defined as parameter
+        try:
+            if mode:
+                os.makedirs(dir_path, mode)
+            else:
+                os.makedirs(dir_path)
+        except OSError as e:
+            print e
+            sys.exit(1)
+
+
+def build_yum_config(name, url, sslcacert, sslcert, sslkey, exclude):
     # Check tmp path exist
-    if not os.path.isdir(tmp_dir):
-        os.mkdir(tmp_dir)
+    make_dir(tmp_dir)
     repo_conf = os.path.join(tmp_dir, '{0}.repo'.format(name))
 
     f = open(repo_conf, 'w')
@@ -45,6 +63,9 @@ def build_yum_config(name, url, sslcacert, sslcert, sslkey):
         f.write('sslcacert = {0}\n'.format(sslcacert))
         f.write('sslclientcert = {0}\n'.format(sslcert))
         f.write('sslclientkey = {0}\n'.format(sslkey))
+
+    if exclude:
+        f.write('exclude = {0}\n'.format(exclude))
 
     f.write('metadata_expire = 60\n')
 
@@ -120,6 +141,7 @@ def sync_cmd_reposync(repo):
     sslcacert = None
     sslcert = None
     sslkey = None
+    exclude = None
 
     reposync_opts = []
 
@@ -133,7 +155,13 @@ def sync_cmd_reposync(repo):
         sslcert = auth['sslcert']
         sslkey = auth['sslkey']
 
-    yum_conf = build_yum_config(name, url, sslcacert, sslcert, sslkey)
+    if repo.has_key('exclude'):
+        exclude_list = repo['exclude'].split(',')
+        # split() will return an empty list element
+        if exclude_list:
+            exclude = ' '.strip().join(exclude_list)
+
+    yum_conf = build_yum_config(name, url, sslcacert, sslcert, sslkey, exclude)
 
     reposync_opts.extend(('-c', yum_conf))
     reposync_opts.extend(('-r', name))
@@ -274,6 +302,9 @@ def main():
             print("If you are sure you want to run as root, pass --root")
             sys.exit(2)
 
+    if not show_command:
+        make_dir(confd_dir)
+
     for repo in repos:
         # set variables based on values in config
         url = repo['url']
@@ -282,8 +313,7 @@ def main():
 
         # create repo directory
         if not show_command:
-            if not os.path.isdir(path):
-                os.makedirs(path, 0775)
+            make_dir(path, 0775)
 
         createrepo = False
         if repo['createrepo'].lower() == "true":
@@ -362,4 +392,3 @@ def main():
 if __name__ == "__main__":
     sys.exit(main())
 
-# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
