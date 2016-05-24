@@ -174,6 +174,8 @@ def sync_cmd_reposync(repo):
 
     # detect arch
     match_arch = re.match(r'.*(?:/|-)(ppc64|ppc64le|x86_64|i386|i686|armhfp|amd64|x86)(?:/|$)', url)
+    # detect a mirror of srpms(so .src.rpm files will get mirrored), See --source option to reposync
+    match_source = re.match(r'.*(?:/|-)(srpms|SRPMS)(?:/|$)', url)
     if match_arch:
         arch = match_arch.groups()[0]
         if arch in ['i386', 'x86']:
@@ -181,6 +183,8 @@ def sync_cmd_reposync(repo):
         elif arch in ['amd64', 'x86_64']:
             arch = 'x86_64'
         reposync_opts.extend(('--arch', arch))
+    elif match_source:
+        reposync_opts.extend(('--source', ))
     else:
         logging.warn('unable to detect architecture for %s' % name)
 
