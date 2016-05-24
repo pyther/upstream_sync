@@ -183,9 +183,11 @@ def sync_cmd_reposync(repo):
         elif arch in ['amd64', 'x86_64']:
             arch = 'x86_64'
         reposync_opts.extend(('--arch', arch))
-    elif match_source:
+
+    if match_source:
         reposync_opts.extend(('--source', ))
-    else:
+
+    if not (match_arch or match_source):
         logging.warn('unable to detect architecture for %s' % name)
 
     # build options
