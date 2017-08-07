@@ -173,7 +173,7 @@ def sync_cmd_reposync(repo):
     reposync_opts.extend(('-p', path))
 
     # detect arch
-    match_arch = re.match(r'.*(?:/|-)(ppc64|ppc64le|x86_64|i386|i686|armhfp|amd64|x86)(?:/|$)', url)
+    match_arch = re.match(r'.*(?:/|-)(ppc64|ppc64le|x86_64|i386|i686|armhfp|amd64|x86|aarch64)(?:/|$)', url)
     # detect a mirror of srpms(so .src.rpm files will get mirrored), See --source option to reposync
     match_source = re.match(r'.*(?:/|-)(srpms|SRPMS)(?:/|$)', url)
     if match_arch:
@@ -353,7 +353,7 @@ def main():
         if not options.verbose:
             createrepo_opts.append('-q')
 
-        if re.match('^(http|https)://', url):
+        if re.match('^(http|https|ftp)://', url):
             sync_cmd = sync_cmd_reposync(repo)
         elif re.match('^rhns:///', url):
             sync_cmd = sync_cmd_rhnget(repo)
